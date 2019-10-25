@@ -18,6 +18,12 @@ require 'serverspec'
 set :backend, :exec
 
 describe 'bundle_install' do
+  scl_prefix = if os[:family] == 'redhat' && os[:release] =~ /^6/
+    'scl enable rh-ruby24 -- '
+  else
+    ''
+  end
+
   describe 'system-level install' do
     rake_binary = case os[:family]
       when 'debian', 'ubuntu'
@@ -25,7 +31,7 @@ describe 'bundle_install' do
       when 'redhat'
         case os[:release]
         when /^6/
-          '/usr/bin/rake'
+          '/opt/rh/rh-ruby24/root/usr/local/bin/rake'
         else
           '/usr/local/bin/rake'
         end
@@ -35,7 +41,7 @@ describe 'bundle_install' do
       it { is_expected.to be_a_file }
     end
 
-    describe command("#{rake_binary} --version") do
+    describe command("#{scl_prefix}#{rake_binary} --version") do
       its(:exit_status) { is_expected.to eq 0 }
     end
   end
@@ -45,7 +51,7 @@ describe 'bundle_install' do
       it { is_expected.to be_a_file }
     end
 
-    describe command('/opt/bundle2/bin/rake --version') do
+    describe command("#{scl_prefix}/opt/bundle2/bin/rake --version") do
       its(:exit_status) { is_expected.to eq 0 }
       its(:stdout) { is_expected.to include('10.4.2') }
     end
@@ -66,14 +72,7 @@ describe 'bundle_install' do
       it { is_expected.to be_a_file }
     end
 
-    scl_name = case os[:release]
-      when /^6/
-        'rh-ruby22'
-      else
-        'rh-ruby23'
-      end
-
-    describe command("scl enable #{scl_name} \"/opt/bundle3/bin/rake --version\"") do
+    describe command("scl enable rh-ruby24 -- /opt/bundle3/bin/rake --version") do
       its(:exit_status) { is_expected.to eq 0 }
     end
   end
